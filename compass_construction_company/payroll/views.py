@@ -29,6 +29,7 @@ def payroll_create(request: HttpRequest) -> HttpResponse:
         bonus = request.POST.get('bonus') or 0
         rec_date = request.POST.get('date') or date.today()
         signature = (request.POST.get('signature') == 'true')
+        payment_status = request.POST.get('payment_status', 'PENDING')
         employee = get_object_or_404(Employee, id=employee_id)
         # Permission: Admins, site chief, or assigned site engineers only
         user = request.user
@@ -52,6 +53,7 @@ def payroll_create(request: HttpRequest) -> HttpResponse:
             bonus=bonus,
             date=rec_date,
             signature=signature,
+            payment_status=payment_status,
         )
         # Notify chief engineer if available
         chief = getattr(employee.site, 'chief_engineer', None)
@@ -97,6 +99,7 @@ def payroll_edit(request: HttpRequest, record_id: int) -> HttpResponse:
         record.bonus = request.POST.get('bonus') or 0
         record.date = request.POST.get('date') or date.today()
         record.signature = (request.POST.get('signature') == 'true')
+        record.payment_status = request.POST.get('payment_status', 'PENDING')
         record.save()
         messages.success(request, 'Payroll record updated successfully')
         return redirect('payroll_list')

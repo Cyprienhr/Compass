@@ -7,4 +7,5 @@ urlpatterns = [
     path('create/', views.attendance_create, name='attendance_create'),
     path('<int:record_id>/edit/', views.attendance_edit, name='attendance_edit'),
     path('<int:record_id>/delete/', views.attendance_delete, name='attendance_delete'),
+    path('<int:employee_id>/latest/json/', views.get_latest_attendance, name='get_latest_attendance'),
 ]

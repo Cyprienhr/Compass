@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from .models import AttendanceRecord
 from employees.models import Employee, Category
 from sites.models import ConstructionSite
@@ -200,3 +200,33 @@ def attendance_delete(request: HttpRequest, record_id: int) -> HttpResponse:
         messages.success(request, 'Attendance record deleted successfully')
         return redirect('attendance_list')
     return redirect('attendance_list')
+
+
+@login_required
+def get_latest_attendance(request: HttpRequest, employee_id: int) -> JsonResponse:
+    """Get the latest attendance record for an employee to auto-fill payroll form"""
+    try:
+        # Get the latest attendance record for the employee
+        latest_attendance = AttendanceRecord.objects.filter(
+            employee_id=employee_id
+        ).order_by('-date', '-created_at').first()
+        
+        if not latest_attendance:
+            return JsonResponse({'error': 'No attendance records found for this employee'}, status=404)
+        
+        # Return the data needed for payroll
+        data = {
+            'amount': float(latest_attendance.amount),
+            'deducted': float(latest_attendance.deducted),
+            'bonus': float(latest_attendance.bonus),
+            'total_amount': float(latest_attendance.total_amount),
+            'period_type': latest_attendance.period_type,
+            'periods_worked': latest_attendance.periods_worked,
+            'date': latest_attendance.date.strftime('%Y-%m-%d'),
+            'category_id': latest_attendance.category.id if latest_attendance.category else None,
+        }
+        
+        return JsonResponse(data)
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

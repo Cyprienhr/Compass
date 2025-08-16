@@ -1,0 +1,8 @@
+# Ensure all text files use LF line endings in the repository
+* text=auto eol=lf
+
+# Explicitly specify file types
+*.py text eol=lf
+*.css text eol=lf
+*.js text eol=lf
+*.md text eol=lf
