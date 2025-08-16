@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sites</title>
+  <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <a class="nav-link" href="/dashboard/">Dashboard</a>
+      {% if user.is_system_admin or user.is_superuser or user.is_chief_engineer %}
+      <a class="nav-link" href="/sites/create/">Register Site</a>
+      {% endif %}
+    </aside>
+    <main class="content">
+      <h1>Sites</h1>
+      <table class="table">
+        <thead><tr><th>No</th><th>Name</th><th>Location</th><th>Chief</th><th>Responsible Site Engineer(s)</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+          {% for s in sites %}
+          <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ s.name }}</td>
+            <td>{{ s.location }}</td>
+            <td>{{ s.chief_engineer }}</td>
+            <td>
+              {% for eng in s.site_engineers.all %}
+                {{ eng.get_full_name|default:eng.username }}{% if not forloop.last %}, {% endif %}
+              {% empty %}-{% endfor %}
+            </td>
+            <td>{{ s.is_active|yesno:"Active,Inactive" }}</td>
+            <td>
+              <a href="/sites/{{ s.id }}/assign/">Assign Engineers</a>
+              {% if user.is_system_admin or user.is_superuser %}
+                | <a href="/sites/{{ s.id }}/edit/">Edit</a>
+                | <form method="post" action="/sites/{{ s.id }}/delete/" style="display:inline">
+                    {% csrf_token %}
+                    <button type="submit" class="linklike">Delete</button>
+                  </form>
+              {% elif user.is_chief_engineer and s.chief_engineer_id == user.id %}
+                | <a href="/sites/{{ s.id }}/edit/">Edit</a>
+                | <form method="post" action="/sites/{{ s.id }}/delete/" style="display:inline">
+                    {% csrf_token %}
+                    <button type="submit" class="linklike">Delete</button>
+                  </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}<tr><td colspan="6">No sites</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </main>
+  </div>
+</body>
+</html>
+
+

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Attendance</title>
+  <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <a class="nav-link" href="/dashboard/">Dashboard</a>
+      <a class="nav-link" href="/attendance/summary/">Summary by Period</a>
+      <a class="nav-link" href="/attendance/create/">Record Attendance</a>
+    </aside>
+    <main class="content">
+      <h1>Attendance Records</h1>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>No</th><th>Name</th><th>National ID</th><th>Category</th><th>Period Type</th><th>Amount per Period</th><th>Periods Worked</th><th>Deducted</th><th>Bonus</th><th>Total</th><th>Date</th><th>Contact</th><th>Signed</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in records %}
+          <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ r.employee.full_name }}</td>
+            <td>{{ r.employee.national_id }}</td>
+            <td>{{ r.category }}</td>
+            <td>{{ r.get_period_display_name }}</td>
+            <td>{{ r.amount }}</td>
+            <td>{{ r.periods_worked }}</td>
+            <td>{{ r.deducted }}</td>
+            <td>{{ r.bonus }}</td>
+            <td>{{ r.total_amount }}</td>
+            <td>{{ r.date }}</td>
+            <td>{{ r.employee.contact }}</td>
+            <td>{% if r.signature %}✓{% else %}-{% endif %}</td>
+            <td>
+              <a href="/attendance/{{ r.id }}/edit/">Edit</a>
+              <form method="post" action="/attendance/{{ r.id }}/delete/" style="display:inline">
+                {% csrf_token %}
+                <button type="submit" class="linklike" onclick="return confirm('Delete attendance record?')">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="14">No records</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </main>
+  </div>
+</body>
+</html>
+
+

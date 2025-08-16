@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notifications</title>
+  <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <a class="nav-link" href="/dashboard/">Dashboard</a>
+    </aside>
+    <main class="content">
+      <h1>Notifications</h1>
+      <ul class="list">
+        {% for n in notifications %}
+          <li class="list-item">
+            <strong>{{ n.title }}</strong>
+            <div>{{ n.message }}</div>
+            <small>{{ n.created_at }}</small>
+            {% if not n.is_read %}
+              <a class="pill" href="/notifications/{{ n.id }}/read/">Mark read</a>
+            {% else %}
+              <span class="pill muted">Read</span>
+            {% endif %}
+          </li>
+        {% empty %}
+          <li>No notifications</li>
+        {% endfor %}
+      </ul>
+    </main>
+  </div>
+</body>
+</html>
+
+

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payroll</title>
+  <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <a class="nav-link" href="/dashboard/">Dashboard</a>
+      <a class="nav-link" href="/payroll/create/">Create Payroll</a>
+    </aside>
+    <main class="content">
+      <h1>Payroll Records</h1>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>No</th><th>Name</th><th>National ID</th><th>Category</th><th>Amount</th><th>Deducted</th><th>Bonus</th><th>Total Paid</th><th>Date</th><th>Contact</th><th>Signed</th><th>Status</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in records %}
+          <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ r.employee.full_name }}</td>
+            <td>{{ r.employee.national_id }}</td>
+            <td>{{ r.category }}</td>
+            <td>{{ r.amount }}</td>
+            <td>{{ r.deducted }}</td>
+            <td>{{ r.bonus }}</td>
+            <td>{{ r.total_paid }}</td>
+            <td>{{ r.date }}</td>
+            <td>{{ r.employee.contact }}</td>
+            <td>{% if r.signature %}✓{% else %}-{% endif %}</td>
+            <td>{{ r.get_payment_status_display }}</td>
+            <td>
+              {% if user.is_system_admin or user.is_superuser or user.is_chief_engineer %}
+              <form method="post" action="/payroll/{{ r.id }}/status/">
+                {% csrf_token %}
+                <select name="payment_status">
+                  <option value="PAID" {% if r.payment_status == 'PAID' %}selected{% endif %}>Paid</option>
+                  <option value="PENDING" {% if r.payment_status == 'PENDING' %}selected{% endif %}>Pending</option>
+                  <option value="PARTIAL" {% if r.payment_status == 'PARTIAL' %}selected{% endif %}>Partial</option>
+                </select>
+                <button type="submit">Update</button>
+              </form>
+              {% endif %}
+              <a href="/payroll/{{ r.id }}/edit/">Edit</a>
+              <form method="post" action="/payroll/{{ r.id }}/delete/" style="display:inline">
+                {% csrf_token %}
+                <button type="submit" class="linklike" onclick="return confirm('Delete payroll record?')">Delete</button>
+              </form>
+              <form method="post" action="/payroll/{{ r.id }}/sign/">
+                {% csrf_token %}
+                <button type="submit">{% if r.signature %}Unsign{% else %}Sign{% endif %}</button>
+              </form>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="13">No records</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </main>
+  </div>
+</body>
+</html>
+
+

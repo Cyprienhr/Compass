@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% if record %}Edit Attendance{% else %}Record Attendance{% endif %}</title>
+  <link rel="stylesheet" href="/static/css/dashboard.css">
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const periodTypeSelect = document.getElementById('period_type');
+      const amountLabel = document.getElementById('amount_label');
+      const workedLabel = document.getElementById('worked_label');
+      
+      function updateLabels() {
+        const periodType = periodTypeSelect.value;
+        switch(periodType) {
+          case 'DAILY':
+            amountLabel.textContent = 'Amount per day';
+            workedLabel.textContent = 'Days worked';
+            break;
+          case 'WEEKLY':
+            amountLabel.textContent = 'Amount per week';
+            workedLabel.textContent = 'Weeks worked';
+            break;
+          case 'BIWEEKLY':
+            amountLabel.textContent = 'Amount per bi-week';
+            workedLabel.textContent = 'Bi-weeks worked';
+            break;
+          case 'MONTHLY':
+            amountLabel.textContent = 'Amount per month';
+            workedLabel.textContent = 'Months worked';
+            break;
+        }
+      }
+      
+      periodTypeSelect.addEventListener('change', updateLabels);
+      updateLabels(); // Initialize labels
+    });
+  </script>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <a class="nav-link" href="/attendance/">Back to Attendance</a>
+    </aside>
+    <main class="content">
+      <h1>{% if record %}Edit Attendance{% else %}Record Attendance{% endif %}</h1>
+      <form method="post" action="">
+        {% csrf_token %}
+        <div class="grid-2">
+          <label>Employee
+            <select name="employee" required>
+              {% for e in employees %}
+                <option value="{{ e.id }}" {% if record.employee_id == e.id %}selected{% endif %}>{{ e.full_name }} ({{ e.national_id }})</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label>Category
+            <select name="category" required>
+              {% for c in categories %}
+                <option value="{{ c.id }}" {% if record.category_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label>Period Type
+            <select name="period_type" id="period_type" required>
+              {% for value, label in period_choices %}
+                <option value="{{ value }}" {% if record.period_type == value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <!-- <label id="amount_label">Amount per period<input name="amount" type="number" step="0.01" value="{{ record.amount }}" required></label>
+          <label id="worked_label">Periods worked<input name="periods_worked" type="number" min="1" value="{{ record.periods_worked|default:1 }}" required></label> -->
+       <label>
+        <span id="amount_label">Amount per period</span>
+        <input name="amount" type="number" step="0.01" value="{{ record.amount }}" required>
+       </label>
+
+      <label>
+        <span id="worked_label">Periods worked</span>
+        <input name="periods_worked" type="number" min="1" value="{{ record.periods_worked|default:1 }}" required>
+      </label>
+
+          <label>Deducted<input name="deducted" type="number" step="0.01" value="{{ record.deducted|default:0 }}"></label>
+          <label>Bonus<input name="bonus" type="number" step="0.01" value="{{ record.bonus|default:0 }}"></label>
+          <label>Date<input name="date" type="date" value="{{ record.date|date:'Y-m-d' }}"></label>
+          <label>Signature<input name="signature" type="checkbox" value="true" {% if record.signature %}checked{% endif %}></label>
+        </div>
+        <button type="submit">Save</button>
+      </form>
+    </main>
+  </div>
+</body>
+</html>
+
+

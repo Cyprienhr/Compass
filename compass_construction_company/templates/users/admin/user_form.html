@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% if user_obj %}Edit User{% else %}Create User{% endif %}</title>
+  <link rel="stylesheet" href="/static/css/dashboard.css">
+  <script src="/static/js/forms.js" defer></script>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <a class="nav-link" href="/users/">Users</a>
+    </aside>
+    <main class="content">
+      <h1>{% if user_obj %}Edit User{% else %}Create User{% endif %}</h1>
+      <form method="post" action="">
+        {% csrf_token %}
+        <div class="grid-2">
+          <label>Username<input name="username" value="{{ user_obj.username }}" {% if user_obj %}readonly{% endif %} required></label>
+          <label>Password<input type="password" name="password" {% if not user_obj %}required{% endif %}></label>
+          <label>First name<input name="first_name" value="{{ user_obj.first_name }}"></label>
+          <label>Last name<input name="last_name" value="{{ user_obj.last_name }}"></label>
+          <label>Email<input type="email" name="email" value="{{ user_obj.email }}"></label>
+          <label>Phone<input name="phone" value="{{ user_obj.phone }}"></label>
+          <label>National ID<input name="national_id" value="{{ user_obj.national_id }}"></label>
+          <label>Role
+            <select name="role" required>
+              {% for value, label in roles %}
+                <option value="{{ value }}" {% if user_obj.role == value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          {% if not user_obj %}
+          <label>Assign Sites (for Site Engineers)
+            <select name="sites" multiple size="8">
+              {% for s in sites %}
+                <option value="{{ s.id }}">{{ s.name }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          {% endif %}
+          <label>Status
+            <select name="status">
+              <option value="active" {% if user_obj.is_active %}selected{% endif %}>Active</option>
+              <option value="inactive" {% if user_obj and not user_obj.is_active %}selected{% endif %}>Inactive</option>
+            </select>
+          </label>
+        </div>
+        <button type="submit">Save</button>
+      </form>
+    </main>
+  </div>
+</body>
+</html>
+
+

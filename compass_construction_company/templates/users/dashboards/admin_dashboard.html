@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>System Admin Dashboard</title>
+  <link rel="stylesheet" href="/static/css/dashboard.css">
+  <script src="/static/js/dashboard.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Compass Construction</div>
+    <nav class="top-actions">
+      <a href="/account/">My Account</a>
+      <a href="/notifications/">Notifications</a>
+      <a href="/logout/">Logout</a>
+    </nav>
+  </header>
+  <div class="layout">
+    <aside class="sidebar">
+      <a class="nav-link" href="/dashboard/" aria-current="page">Overview</a>
+      <a class="nav-link" href="/users/">Users</a>
+      <a class="nav-link" href="/sites/">Sites</a>
+      <a class="nav-link" href="/employees/">Employees</a>
+      <a class="nav-link" href="/attendance/">Attendance</a>
+      <a class="nav-link" href="/payroll/">Payroll</a>
+    </aside>
+    <main class="content">
+      <h1>Welcome, System Admin</h1>
+      <section class="cards">
+        <a class="card" href="/users/"><strong>Manage Users</strong><span>Create, edit, activate, deactivate, delete</span></a>
+        <a class="card" href="/sites/"><strong>Manage Sites</strong><span>Register, assign engineers</span></a>
+        <a class="card" href="/employees/"><strong>Employees</strong><span>Register and manage</span></a>
+        <a class="card" href="/attendance/"><strong>Attendance</strong><span>Record and review</span></a>
+        <a class="card" href="/payroll/"><strong>Payroll</strong><span>Prepare and update status</span></a>
+      </section>
+      <!-- <footer class="footer">© {{ now|default:2025 }} Compass</footer> -->
+    </main>
+  </div>
+</body>
+</html>
+
+

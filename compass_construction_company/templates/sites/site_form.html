@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% if site %}Edit Site{% else %}Register Site{% endif %}</title>
+  <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <a class="nav-link" href="/sites/">Back to Sites</a>
+    </aside>
+    <main class="content">
+      <h1>{% if site %}Edit Site{% else %}Register Site{% endif %}</h1>
+      <form method="post" action="">
+        {% csrf_token %}
+        <div class="grid-2">
+          <label>Name<input name="name" required value="{{ site.name }}"></label>
+          <label>Location<input name="location" value="{{ site.location }}"></label>
+          <label>Chief Engineer
+            <select name="chief_engineer">
+              <option value="">-- Optional --</option>
+              {% for c in chiefs %}
+                <option value="{{ c.id }}" {% if site.chief_engineer_id == c.id %}selected{% endif %}>{{ c.get_full_name }} ({{ c.username }})</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label>Description<textarea name="description" rows="3">{{ site.description }}</textarea></label>
+          {% if site %}
+          <label>Status
+            <select name="status">
+              <option value="active" {% if site.is_active %}selected{% endif %}>Active</option>
+              <option value="inactive" {% if not site.is_active %}selected{% endif %}>Inactive</option>
+            </select>
+          </label>
+          {% endif %}
+        </div>
+        <button type="submit">Save</button>
+      </form>
+    </main>
+  </div>
+</body>
+</html>
+
+

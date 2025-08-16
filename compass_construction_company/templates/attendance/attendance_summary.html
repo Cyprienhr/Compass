@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Attendance Summary</title>
+  <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <a class="nav-link" href="/attendance/">Back to Attendance</a>
+      <a class="nav-link" href="/attendance/create/">Record Attendance</a>
+    </aside>
+    <main class="content">
+      <h1>Attendance Summary by Period Type</h1>
+      
+      <div class="summary-cards">
+        {% for period_type, data in summary.items %}
+        <div class="card">
+          <h3>{{ period_type|title }}</h3>
+          <div class="summary-stats">
+            <div><strong>Total Records:</strong> {{ data.total_count }}</div>
+            <div><strong>Total Periods:</strong> {{ data.total_worked }}</div>
+            <div><strong>Total Amount:</strong> {{ data.total_amount }}</div>
+          </div>
+          
+          {% if data.records %}
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Employee</th>
+                <th>Periods</th>
+                <th>Amount</th>
+                <th>Total</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for record in data.records %}
+              <tr>
+                <td>{{ record.employee.full_name }}</td>
+                <td>{{ record.periods_worked }} {{ period_type|lower }}{{ record.periods_worked|pluralize }}</td>
+                <td>{{ record.amount }}</td>
+                <td>{{ record.total_amount }}</td>
+                <td>{{ record.date }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <p class="muted">No {{ period_type|lower }} records found.</p>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </main>
+  </div>
+</body>
+</html>

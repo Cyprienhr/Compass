@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% if employee %}Edit Employee{% else %}Register Employee{% endif %}</title>
+  <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <a class="nav-link" href="/employees/">Back to Employees</a>
+    </aside>
+    <main class="content">
+      <h1>{% if employee %}Edit Employee{% else %}Register Employee{% endif %}</h1>
+      <form method="post" action="">
+        {% csrf_token %}
+        <div class="grid-2">
+          <label>Full Name<input name="full_name" value="{{ employee.full_name }}" required></label>
+          <label>National ID<input name="national_id" value="{{ employee.national_id }}" required></label>
+          <label>Contact<input name="contact" value="{{ employee.contact }}"></label>
+          <label>Site
+            <select name="site" required>
+              {% for s in sites %}
+                <option value="{{ s.id }}" {% if employee.site_id == s.id %}selected{% endif %}>{{ s.name }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label>Category
+            <select name="category" required>
+              {% for c in categories %}
+                <option value="{{ c.id }}" {% if employee.category_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+              {% endfor %}
+            </select>
+          </label>
+        </div>
+        <button type="submit">Save</button>
+      </form>
+    </main>
+  </div>
+</body>
+</html>
+
+

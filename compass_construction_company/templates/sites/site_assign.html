@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Assign Engineers</title>
+  <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <a class="nav-link" href="/sites/">Back to Sites</a>
+    </aside>
+    <main class="content">
+      <h1>Assign Engineers to {{ site.name }}</h1>
+      <form method="post" action="">
+        {% csrf_token %}
+        <label>Site Engineers
+          <select name="engineers" multiple size="10" style="min-width:280px">
+            {% for e in engineers %}
+              <option value="{{ e.id }}">{{ e.get_full_name }} ({{ e.username }})</option>
+            {% endfor %}
+          </select>
+        </label>
+        <button type="submit">Assign</button>
+      </form>
+    </main>
+  </div>
+</body>
+</html>
+
+

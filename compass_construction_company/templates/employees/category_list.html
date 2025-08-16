@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Categories</title>
+  <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <a class="nav-link" href="/employees/">Employees</a>
+      <a class="nav-link" href="/employees/categories/create/">Create Category</a>
+    </aside>
+    <main class="content">
+      <h1>Categories</h1>
+      <table class="table">
+        <thead><tr><th>No</th><th>Name</th><th>Description</th></tr></thead>
+        <tbody>
+          {% for c in categories %}
+          <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ c.name }}</td>
+            <td>{{ c.description }}</td>
+          </tr>
+          {% empty %}<tr><td colspan="3">No categories</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </main>
+  </div>
+</body>
+</html>
+
+

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Account</title>
+  <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <a class="nav-link" href="/dashboard/">Dashboard</a>
+      <a class="nav-link" href="/account/password/">Change Password</a>
+    </aside>
+    <main class="content">
+      <h1>My Account</h1>
+      <form method="post" action="">
+        {% csrf_token %}
+        <div class="grid-2">
+          <label>First name<input name="first_name" value="{{ request.user.first_name }}"></label>
+          <label>Last name<input name="last_name" value="{{ request.user.last_name }}"></label>
+          <label>Email<input type="email" name="email" value="{{ request.user.email }}"></label>
+          <label>Phone<input name="phone" value="{{ request.user.phone }}"></label>
+          <label>National ID<input name="national_id" value="{{ request.user.national_id }}"></label>
+        </div>
+        <button type="submit">Save</button>
+      </form>
+    </main>
+  </div>
+</body>
+</html>
+
+

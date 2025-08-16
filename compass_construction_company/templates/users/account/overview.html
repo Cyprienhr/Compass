@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Account</title>
+  <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <a class="nav-link" href="/dashboard/">Back</a>
+      <a class="nav-link" href="/account/edit/">Edit Profile</a>
+      <a class="nav-link" href="/account/password/">Change Password</a>
+    </aside>
+    <main class="content">
+      <h1>Account Overview</h1>
+      <div class="cards">
+        <div class="card">
+          <strong>Names</strong>
+          <span>{{ request.user.first_name }} {{ request.user.last_name }}</span>
+        </div>
+        <div class="card">
+          <strong>Username</strong>
+          <span>{{ request.user.username }}</span>
+        </div>
+        <div class="card">
+          <strong>Email</strong>
+          <span>{{ request.user.email }}</span>
+        </div>
+        <div class="card">
+          <strong>Phone</strong>
+          <span>{{ request.user.phone }}</span>
+        </div>
+        <div class="card">
+          <strong>National ID</strong>
+          <span>{{ request.user.national_id }}</span>
+        </div>
+        <div class="card">
+          <strong>Role</strong>
+          <span>{{ request.user.get_role_display }}</span>
+        </div>
+        <div class="card">
+          <strong>Status</strong>
+          <span>{% if request.user.is_active %}Active{% else %}Inactive{% endif %}</span>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
+
+

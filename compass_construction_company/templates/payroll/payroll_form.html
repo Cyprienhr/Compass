@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% if record %}Edit Payroll{% else %}Create Payroll{% endif %}</title>
+  <link rel="stylesheet" href="/static/css/dashboard.css">
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const select = document.querySelector('select[name="employee"]');
+      const info = document.getElementById('emp-info');
+      function load() {
+        const id = select.value;
+        if (!id) { info.textContent = 'Pick an employee to preview details.'; return; }
+        fetch('/employees/' + id + '/json/')
+          .then(r => r.ok ? r.json() : null)
+          .then(data => {
+            if (!data) { info.textContent = 'Unable to load.'; return; }
+            info.innerHTML = `
+              <div><strong>Name:</strong> ${data.full_name}</div>
+              <div><strong>National ID:</strong> ${data.national_id}</div>
+              <div><strong>Category:</strong> ${data.category}</div>
+              <div><strong>Site:</strong> ${data.site}</div>
+              <div><strong>Contact:</strong> ${data.contact || '-'}</div>
+              <div><strong>Status:</strong> ${data.is_active ? 'Active' : 'Inactive'}</div>
+            `;
+          }).catch(() => info.textContent = 'Unable to load.');
+      }
+      select.addEventListener('change', load);
+      load();
+    });
+  </script>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <a class="nav-link" href="/payroll/">Back to Payroll</a>
+    </aside>
+    <main class="content">
+      <h1>{% if record %}Edit Payroll{% else %}Create Payroll{% endif %}</h1>
+      <form method="post" action="">
+        {% csrf_token %}
+        <div class="grid-2">
+          <label>Employee
+            <select name="employee" required>
+              {% for e in employees %}
+                <option value="{{ e.id }}" {% if record.employee_id == e.id %}selected{% endif %}>{{ e.full_name }} ({{ e.national_id }})</option>
+              {% endfor %}
+            </select>
+          </label>
+          <div class="card" style="grid-column:1/-1">
+            <strong>Selected employee info</strong>
+            <div id="emp-info" class="muted">Pick an employee to preview details.</div>
+          </div>
+          <label>Category
+            <select name="category" required>
+              {% for c in categories %}
+                <option value="{{ c.id }}" {% if record.category_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label>Amount<input name="amount" type="number" step="0.01" value="{{ record.amount }}" required></label>
+          <label>Deducted<input name="deducted" type="number" step="0.01" value="{{ record.deducted|default:0 }}"></label>
+          <label>Bonus<input name="bonus" type="number" step="0.01" value="{{ record.bonus|default:0 }}"></label>
+          <label>Date<input name="date" type="date" value="{{ record.date|date:'Y-m-d' }}"></label>
+          <label>Signature<input name="signature" type="checkbox" value="true" {% if record.signature %}checked{% endif %}></label>
+        </div>
+        <button type="submit">Save</button>
+      </form>
+    </main>
+  </div>
+</body>
+</html>
+
+

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Employees</title>
+  <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <a class="nav-link" href="/dashboard/">Dashboard</a>
+      <a class="nav-link" href="/employees/create/">Register Employee</a>
+    </aside>
+    <main class="content">
+      <h1>Employees</h1>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>No</th><th>Name</th><th>National ID</th><th>Category</th><th>Site</th><th>Contact</th><th>Work Periods</th><th>Total Earnings</th><th>Status</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for e in employees %}
+          <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ e.full_name }}</td>
+            <td>{{ e.national_id }}</td>
+            <td>{{ e.category }}</td>
+            <td>{{ e.site.name }}</td>
+            <td>{{ e.contact }}</td>
+            <td>
+              <div><strong>Days:</strong> {{ e.get_total_worked_days }}</div>
+              <div><strong>Weeks:</strong> {{ e.get_total_worked_weeks }}</div>
+              <div><strong>Bi-weeks:</strong> {{ e.get_total_worked_biweeks }}</div>
+              <div><strong>Months:</strong> {{ e.get_total_worked_months }}</div>
+            </td>
+            <td>
+              {% with earnings=e.get_earnings_by_period_type %}
+                <div><strong>Daily:</strong> {{ earnings.DAILY }}</div>
+                <div><strong>Weekly:</strong> {{ earnings.WEEKLY }}</div>
+                <div><strong>Bi-weekly:</strong> {{ earnings.BIWEEKLY }}</div>
+                <div><strong>Monthly:</strong> {{ earnings.MONTHLY }}</div>
+                <div><strong>Total:</strong> {{ e.get_total_earnings }}</div>
+              {% endwith %}
+            </td>
+            <td>{{ e.is_active|yesno:"Active,Inactive" }}</td>
+            <td>
+              <a href="/employees/{{ e.id }}/edit/">Edit</a>
+              <a href="/employees/{{ e.id }}/toggle/">{% if e.is_active %}Deactivate{% else %}Activate{% endif %}</a>
+              <form method="post" action="/employees/{{ e.id }}/delete/" style="display:inline">
+                {% csrf_token %}
+                <button type="submit" class="linklike" onclick="return confirm('Delete employee?')">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="10">No employees found</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </main>
+  </div>
+</body>
+</html>
+
+

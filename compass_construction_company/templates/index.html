@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Compass Construction</title>
+  <link rel="stylesheet" href="/static/css/landing.css">
+  <script src="/static/js/landing.js" defer></script>
+</head>
+<body>
+  <header class="hero">
+    <div class="wrap">
+      <h1>Welcome to Compass Construction Company</h1>
+      <p>Manage sites, teams, attendance, and payroll in one place.</p>
+      <div class="cta">
+        <a class="btn" href="/login/">Sign In</a>
+        <a class="btn outline" href="#features">Explore Features</a>
+      </div>
+    </div>
+  </header>
+  <main class="wrap" id="features">
+    <section class="grid">
+      <article class="card">
+        <h3>System Admin</h3>
+        <p>Create and manage user accounts, register sites, and configure access.</p>
+      </article>
+      <article class="card">
+        <h3>Chief Engineer</h3>
+        <p>Oversee sites, assign site engineers, review reports, manage payroll status.</p>
+      </article>
+      <article class="card">
+        <h3>Site Engineer</h3>
+        <p>Register employees, record attendance, prepare payroll, and track categories.</p>
+      </article>
+    </section>
+  </main>
+  <footer class="footer">
+    <center><div class="wrap">© {{ now|default:2025 }} Compass Construction Company</div></center>
+  </footer>
+</body>
+</html>
+
+
