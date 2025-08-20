@@ -3,173 +3,192 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import HttpRequest, HttpResponse
 from .models import PayrollRecord
-from employees.models import Employee, Category
+from employees.models import Employee
 from datetime import date
-from notifications.models import Notification
+from attendance.models import AttendanceRecord
 
 
 @login_required
 def payroll_list(request: HttpRequest) -> HttpResponse:
+    # Scope attendance by permissions
     if request.user.is_system_admin() or request.user.is_superuser:
-        qs = PayrollRecord.objects.select_related('employee', 'category').all()
+        attendance_qs = AttendanceRecord.objects.select_related('employee', 'employee__site')
     elif request.user.is_chief_engineer():
-        qs = PayrollRecord.objects.select_related('employee', 'category').filter(employee__site__chief_engineer=request.user)
+        attendance_qs = AttendanceRecord.objects.select_related('employee', 'employee__site').filter(employee__site__chief_engineer=request.user)
     else:
-        qs = PayrollRecord.objects.select_related('employee', 'category').filter(employee__site__site_engineers=request.user)
-    return render(request, 'payroll/payroll_list.html', {'records': qs})
+        attendance_qs = AttendanceRecord.objects.select_related('employee', 'employee__site').filter(employee__site__site_engineers=request.user)
+
+    # Determine selected date; default to today
+    selected_date_param = request.GET.get('date')
+    selected_date = None
+    if selected_date_param:
+        try:
+            y, m, d = [int(x) for x in selected_date_param.split('-')]
+            selected_date = date(y, m, d)
+        except Exception:
+            selected_date = None
+    if not selected_date:
+        selected_date = date.today()
+    selected_date_str = selected_date.isoformat()
+
+    # Aggregation for the selected date
+    day_records = attendance_qs.filter(date=selected_date)
+    by_employee = {}
+    for rec in day_records:
+        emp_id = rec.employee_id
+        if emp_id not in by_employee:
+            by_employee[emp_id] = {
+                'employee': rec.employee,
+                'total_amount': 0.0,
+                'total_deducted': 0.0,
+                'total_bonus': 0.0,
+            }
+        by_employee[emp_id]['total_amount'] += float(rec.total_amount)
+        by_employee[emp_id]['total_deducted'] += float(rec.deducted or 0)
+        by_employee[emp_id]['total_bonus'] += float(rec.bonus or 0)
+
+    date_rows = []
+    for emp_id, info in by_employee.items():
+        pr = PayrollRecord.objects.filter(employee_id=emp_id, date=selected_date).select_related('employee', 'category').first()
+        date_rows.append({
+            'employee': info['employee'],
+            'amount': info['total_amount'],
+            'deducted': info['total_deducted'],
+            'bonus': info['total_bonus'],
+            'date': selected_date,
+            'record': pr,
+        })
+
+    ctx = {'date_rows': date_rows, 'selected_date': selected_date_str}
+    return render(request, 'payroll/payroll_list.html', ctx)
 
 
 @login_required
-def payroll_create(request: HttpRequest) -> HttpResponse:
-    if request.method == 'POST':
+def payroll_upsert_for_date(request: HttpRequest) -> HttpResponse:
+    if request.method != 'POST':
+        return redirect('payroll_list')
+
+    try:
         employee_id = int(request.POST.get('employee'))
-        category_id = int(request.POST.get('category'))
-        amount = request.POST.get('amount')
-        deducted = request.POST.get('deducted') or 0
-        bonus = request.POST.get('bonus') or 0
-        rec_date = request.POST.get('date') or date.today()
-        signature = (request.POST.get('signature') == 'true')
-        payment_status = request.POST.get('payment_status', 'PENDING')
-        employee = get_object_or_404(Employee, id=employee_id)
-        # Permission: Admins, site chief, or assigned site engineers only
-        user = request.user
-        allowed = False
-        if user.is_system_admin() or user.is_superuser or user.is_chief_engineer():
-            if user.is_chief_engineer():
-                allowed = (employee.site.chief_engineer_id == user.id)
-            else:
-                allowed = True
+        selected_date_str = request.POST.get('date')
+        status = request.POST.get('payment_status', 'PENDING')
+        signature_flag = (request.POST.get('signature') == 'true')
+        y, m, d = [int(x) for x in selected_date_str.split('-')]
+        selected_date = date(y, m, d)
+    except Exception:
+        messages.error(request, 'Invalid data provided')
+        return redirect('payroll_list')
+
+    employee = get_object_or_404(Employee, id=employee_id)
+    # Permission
+    user = request.user
+    if user.is_system_admin() or user.is_superuser:
+        allowed = True
+    elif user.is_chief_engineer():
+        allowed = (employee.site.chief_engineer_id == user.id)
+    else:
+        allowed = employee.site.site_engineers.filter(id=user.id).exists()
+    if not allowed:
+        messages.error(request, 'Not authorized for this employee')
+        return redirect('payroll_list')
+
+    att_qs = AttendanceRecord.objects.filter(employee_id=employee_id, date=selected_date)
+    if not att_qs.exists():
+        messages.error(request, 'No attendance found for that date')
+        return redirect(f"/payroll/?date={selected_date}")
+    total_amount = sum(float(a.total_amount) for a in att_qs)
+
+    record, created = PayrollRecord.objects.get_or_create(
+        employee=employee,
+        date=selected_date,
+        defaults={
+            'category': employee.category,
+            'amount': total_amount,
+            'deducted': 0,
+            'bonus': 0,
+            'signature': signature_flag,
+            'payment_status': status,
+        }
+    )
+    if not created:
+        record.category = employee.category
+        record.amount = total_amount
+        record.deducted = record.deducted or 0
+        record.bonus = record.bonus or 0
+        record.payment_status = status
+        if signature_flag:
+            record.signature = True
+        record.save()
+
+    messages.success(request, 'Payroll updated for the selected date')
+    return redirect(f"/payroll/?date={selected_date}")
+
+
+@login_required
+def payroll_bulk_upsert_for_date(request: HttpRequest) -> HttpResponse:
+    if request.method != 'POST':
+        return redirect('payroll_list')
+
+    selected_date_str = request.POST.get('date')
+    try:
+        y, m, d = [int(x) for x in selected_date_str.split('-')]
+        selected_date = date(y, m, d)
+    except Exception:
+        messages.error(request, 'Invalid date')
+        return redirect('payroll_list')
+
+    employee_ids = request.POST.getlist('employee_ids')
+    user = request.user
+    updated_count = 0
+
+    for eid_str in employee_ids:
+        try:
+            eid = int(eid_str)
+        except Exception:
+            continue
+        employee = Employee.objects.filter(id=eid).select_related('site', 'category').first()
+        if not employee:
+            continue
+        # Permission check per employee
+        if user.is_system_admin() or user.is_superuser:
+            allowed = True
+        elif user.is_chief_engineer():
+            allowed = (employee.site.chief_engineer_id == user.id)
         else:
             allowed = employee.site.site_engineers.filter(id=user.id).exists()
         if not allowed:
-            messages.error(request, 'Not authorized to create payroll for this employee')
-            return redirect('payroll_list')
-        category = get_object_or_404(Category, id=category_id)
-        record = PayrollRecord.objects.create(
+            continue
+
+        status = request.POST.get(f'payment_status_{eid}', 'PENDING')
+        signature_flag = (request.POST.get(f'signature_{eid}') == 'true') or (request.POST.get(f'signature_{eid}') == 'on')
+
+        att_qs = AttendanceRecord.objects.filter(employee_id=eid, date=selected_date)
+        if not att_qs.exists():
+            continue
+        total_amount = sum(float(a.total_amount) for a in att_qs)
+
+        record, created = PayrollRecord.objects.get_or_create(
             employee=employee,
-            category=category,
-            amount=amount,
-            deducted=deducted,
-            bonus=bonus,
-            date=rec_date,
-            signature=signature,
-            payment_status=payment_status,
+            date=selected_date,
+            defaults={
+                'category': employee.category,
+                'amount': total_amount,
+                'deducted': 0,
+                'bonus': 0,
+                'signature': signature_flag,
+                'payment_status': status,
+            }
         )
-        # Notify chief engineer if available
-        chief = getattr(employee.site, 'chief_engineer', None)
-        if chief:
-            Notification.objects.create(
-                recipient=chief,
-                title='New Payroll Record',
-                message=f'Payroll prepared for {employee.full_name} on {rec_date}.'
-            )
-        messages.success(request, f'Payroll record created for {record.employee.full_name}')
-        return redirect('payroll_list')
-    if request.user.is_system_admin() or request.user.is_superuser:
-        employees = Employee.objects.all()
-    elif request.user.is_chief_engineer():
-        employees = Employee.objects.filter(site__chief_engineer=request.user)
-    else:
-        employees = Employee.objects.filter(site__site_engineers=request.user)
-    categories = Category.objects.all()
-    return render(request, 'payroll/payroll_form.html', {'employees': employees, 'categories': categories})
-
-
-@login_required
-def payroll_edit(request: HttpRequest, record_id: int) -> HttpResponse:
-    record = get_object_or_404(PayrollRecord, id=record_id)
-    # Permission: Admins, site chief, or assigned site engineers only
-    user = request.user
-    allowed = False
-    if user.is_system_admin() or user.is_superuser or user.is_chief_engineer():
-        if user.is_chief_engineer():
-            allowed = (record.employee.site.chief_engineer_id == user.id)
-        else:
-            allowed = True
-    else:
-        allowed = record.employee.site.site_engineers.filter(id=user.id).exists()
-    if not allowed:
-        return redirect('payroll_list')
-    
-    if request.method == 'POST':
-        record.employee_id = int(request.POST.get('employee'))
-        record.category_id = int(request.POST.get('category'))
-        record.amount = request.POST.get('amount')
-        record.deducted = request.POST.get('deducted') or 0
-        record.bonus = request.POST.get('bonus') or 0
-        record.date = request.POST.get('date') or date.today()
-        record.signature = (request.POST.get('signature') == 'true')
-        record.payment_status = request.POST.get('payment_status', 'PENDING')
-        record.save()
-        messages.success(request, 'Payroll record updated successfully')
-        return redirect('payroll_list')
-    
-    # Narrow employees by accessible sites
-    if user.is_system_admin() or user.is_superuser:
-        employees = Employee.objects.all()
-    elif user.is_chief_engineer():
-        employees = Employee.objects.filter(site__chief_engineer=user)
-    else:
-        employees = Employee.objects.filter(site__site_engineers=user)
-    categories = Category.objects.all()
-    return render(request, 'payroll/payroll_form.html', {
-        'record': record,
-        'employees': employees,
-        'categories': categories,
-    })
-
-
-@login_required
-def payroll_delete(request: HttpRequest, record_id: int) -> HttpResponse:
-    record = get_object_or_404(PayrollRecord, id=record_id)
-    # Permission: Admins, site chief, or assigned site engineers only
-    user = request.user
-    allowed = False
-    if user.is_system_admin() or user.is_superuser or user.is_chief_engineer():
-        if user.is_chief_engineer():
-            allowed = (record.employee.site.chief_engineer_id == user.id)
-        else:
-            allowed = True
-    else:
-        allowed = record.employee.site.site_engineers.filter(id=user.id).exists()
-    if not allowed:
-        return redirect('payroll_list')
-    
-    if request.method == 'POST':
-        record.delete()
-        messages.success(request, 'Payroll record deleted successfully')
-        return redirect('payroll_list')
-    return redirect('payroll_list')
-
-
-@login_required
-def payroll_update_status(request: HttpRequest, record_id: int) -> HttpResponse:
-    if not (request.user.is_system_admin() or request.user.is_chief_engineer() or request.user.is_superuser):
-        return redirect('dashboard')
-    record = get_object_or_404(PayrollRecord, id=record_id)
-    if request.method == 'POST':
-        status = request.POST.get('payment_status')
-        if status in dict(PayrollRecord._meta.get_field('payment_status').choices):
+        if not created:
+            record.category = employee.category
+            record.amount = total_amount
+            record.deducted = record.deducted or 0
+            record.bonus = record.bonus or 0
             record.payment_status = status
+            if signature_flag:
+                record.signature = True
             record.save()
-            messages.success(request, 'Payment status updated')
-    return redirect('payroll_list')
+        updated_count += 1
 
-
-@login_required
-def payroll_sign(request: HttpRequest, record_id: int) -> HttpResponse:
-    # Allow Site Engineers (on that site), Chief Engineer of the site, and Admins to toggle signature
-    record = get_object_or_404(PayrollRecord, id=record_id)
-    user = request.user
-    allowed = False
-    if user.is_system_admin() or user.is_superuser or user.is_chief_engineer():
-        allowed = True
-    else:
-        # Site Engineer assigned to the employee's site
-        allowed = record.employee.site.site_engineers.filter(id=user.id).exists()
-    if not allowed:
-        return redirect('payroll_list')
-    record.signature = not record.signature
-    record.save()
-    messages.success(request, 'Payroll signature updated')
-    return redirect('payroll_list')
+    messages.success(request, f'Saved payroll for {updated_count} employee(s) on {selected_date}')
+    return redirect(f"/payroll/?date={selected_date}")

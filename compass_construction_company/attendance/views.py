@@ -48,7 +48,7 @@ def attendance_summary(request: HttpRequest) -> HttpResponse:
 @login_required
 def attendance_create(request: HttpRequest) -> HttpResponse:
     if request.method == 'POST':
-        employee_id = int(request.POST.get('employee'))
+        # Common attendance fields
         category_id = int(request.POST.get('category'))
         amount = int(request.POST.get('amount') or 0)
         period_type = request.POST.get('period_type')
@@ -58,21 +58,60 @@ def attendance_create(request: HttpRequest) -> HttpResponse:
         rec_date = request.POST.get('date') or date.today()
         signature = (request.POST.get('signature') == 'true')
 
-        employee = get_object_or_404(Employee, id=employee_id)
-        # Permission: Admins, site chief, or assigned site engineers only
         user = request.user
-        allowed = False
-        if user.is_system_admin() or user.is_superuser or user.is_chief_engineer():
-            # Chiefs can record for their sites only
-            if user.is_chief_engineer():
-                allowed = (employee.site.chief_engineer_id == user.id)
-            else:
+        new_employee_flag = request.POST.get('new_employee') in ['true', 'on', '1']
+
+        if new_employee_flag:
+            # Creating a new employee inline
+            full_name = (request.POST.get('new_full_name') or '').strip()
+            national_id = (request.POST.get('new_national_id') or '').strip()
+            contact = (request.POST.get('new_contact') or '').strip()
+            site_id = request.POST.get('new_site')
+
+            if not full_name or not national_id or not site_id:
+                messages.error(request, 'Please provide full name, national ID and site for the new employee.')
+                return redirect('attendance_create')
+
+            # Permission based on selected site
+            site = get_object_or_404(ConstructionSite, id=int(site_id))
+            allowed = False
+            if user.is_system_admin() or user.is_superuser:
                 allowed = True
+            elif user.is_chief_engineer():
+                allowed = (site.chief_engineer_id == user.id)
+            else:
+                allowed = site.site_engineers.filter(id=user.id).exists()
+            if not allowed:
+                messages.error(request, 'Not authorized to add employees for this site')
+                return redirect('attendance_list')
+
+            # Create the employee
+            employee = Employee.objects.create(
+                full_name=full_name,
+                national_id=national_id,
+                contact=contact,
+                site=site,
+                category_id=category_id,
+                created_by=user,
+            )
         else:
-            allowed = employee.site.site_engineers.filter(id=user.id).exists()
-        if not allowed:
-            messages.error(request, 'Not authorized to record attendance for this employee')
-            return redirect('attendance_list')
+            # Using existing employee
+            employee_id = int(request.POST.get('employee'))
+            employee = get_object_or_404(Employee, id=employee_id)
+            # Permission: Admins, site chief, or assigned site engineers only
+            allowed = False
+            if user.is_system_admin() or user.is_superuser or user.is_chief_engineer():
+                # Chiefs can record for their sites only
+                if user.is_chief_engineer():
+                    allowed = (employee.site.chief_engineer_id == user.id)
+                else:
+                    allowed = True
+            else:
+                allowed = employee.site.site_engineers.filter(id=user.id).exists()
+            if not allowed:
+                messages.error(request, 'Not authorized to record attendance for this employee')
+                return redirect('attendance_list')
+
         category = get_object_or_404(Category, id=category_id)
         AttendanceRecord.objects.create(
             employee=employee,
@@ -96,17 +135,21 @@ def attendance_create(request: HttpRequest) -> HttpResponse:
         messages.success(request, 'Attendance recorded and chief notified')
         return redirect('attendance_list')
 
-    # Narrow employees by accessible sites
+    # Narrow employees and sites by accessible permissions
     if request.user.is_system_admin() or request.user.is_superuser:
         employees = Employee.objects.all()
+        sites = ConstructionSite.objects.all()
     elif request.user.is_chief_engineer():
         employees = Employee.objects.filter(site__chief_engineer=request.user)
+        sites = ConstructionSite.objects.filter(chief_engineer=request.user)
     else:
         employees = Employee.objects.filter(site__site_engineers=request.user)
+        sites = ConstructionSite.objects.filter(site_engineers=request.user)
     categories = Category.objects.all()
     return render(request, 'attendance/attendance_form.html', {
         'employees': employees,
         'categories': categories,
+        'sites': sites,
         'period_choices': AttendanceRecord.PERIOD_CHOICES,
     })
 
