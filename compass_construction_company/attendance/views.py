@@ -6,7 +6,7 @@ from .models import AttendanceRecord
 from employees.models import Employee, Category
 from sites.models import ConstructionSite
 from datetime import date
-from notifications.models import Notification
+# Notification import removed - only payroll notifications are needed
 from django.db.models import Sum, Count
 
 
@@ -15,8 +15,10 @@ def attendance_list(request: HttpRequest) -> HttpResponse:
     if request.user.is_system_admin() or request.user.is_superuser:
         qs = AttendanceRecord.objects.select_related('employee', 'category').all()
     elif request.user.is_chief_engineer():
-        qs = AttendanceRecord.objects.select_related('employee', 'category').filter(employee__site__chief_engineer=request.user)
+        # Chief engineers only see attendance records they created themselves
+        qs = AttendanceRecord.objects.select_related('employee', 'category').filter(created_by=request.user)
     else:
+        # Site engineers only see attendance from sites they're assigned to
         qs = AttendanceRecord.objects.select_related('employee', 'category').filter(employee__site__site_engineers=request.user)
     return render(request, 'attendance/attendance_list.html', {'records': qs})
 
@@ -27,8 +29,10 @@ def attendance_summary(request: HttpRequest) -> HttpResponse:
     if request.user.is_system_admin() or request.user.is_superuser:
         qs = AttendanceRecord.objects.select_related('employee', 'category').all()
     elif request.user.is_chief_engineer():
-        qs = AttendanceRecord.objects.select_related('employee', 'category').filter(employee__site__chief_engineer=request.user)
+        # Chief engineers only see attendance records they created themselves
+        qs = AttendanceRecord.objects.select_related('employee', 'category').filter(created_by=request.user)
     else:
+        # Site engineers only see attendance from sites they're assigned to
         qs = AttendanceRecord.objects.select_related('employee', 'category').filter(employee__site__site_engineers=request.user)
     
     # Group by period type
@@ -123,16 +127,10 @@ def attendance_create(request: HttpRequest) -> HttpResponse:
             bonus=bonus,
             date=rec_date,
             signature=signature,
+            created_by=user,
         )
-        # Notify chief engineer if available
-        chief = getattr(employee.site, 'chief_engineer', None)
-        if chief:
-            Notification.objects.create(
-                recipient=chief,
-                title='New Attendance Record',
-                message=f'{employee.full_name} - {period_type} x{periods_worked} recorded.'
-            )
-        messages.success(request, 'Attendance recorded and chief notified')
+        # Removed chief engineer notification - only payroll notifications are needed
+        messages.success(request, 'Attendance recorded successfully')
         return redirect('attendance_list')
 
     # Narrow employees and sites by accessible permissions

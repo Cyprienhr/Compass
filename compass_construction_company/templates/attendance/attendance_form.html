@@ -37,13 +37,40 @@
       }
 
       function syncToggle() {
-        const createNew = newEmpToggle.checked;
-        newEmpFields.style.display = createNew ? 'grid' : 'none';
-        existingEmpBlock.style.display = createNew ? 'none' : 'block';
+        const createNew = newEmpToggle && newEmpToggle.checked;
+        if (newEmpFields) newEmpFields.style.display = createNew ? 'grid' : 'none';
+        if (existingEmpBlock) existingEmpBlock.style.display = createNew ? 'none' : 'block';
+      }
+
+      // Employee search filter
+      const empSelect = document.querySelector('select[name="employee"]');
+      const empSearch = document.getElementById('employee-search');
+      if (empSelect && empSearch) {
+        // Cache original options
+        const originalOptions = Array.from(empSelect.options).map(o => ({ value: o.value, text: o.text }));
+        function filterEmployees() {
+          const q = empSearch.value.trim().toLowerCase();
+          // Preserve current selection if still visible
+          const currentVal = empSelect.value;
+          // Build filtered list
+          const filtered = q ? originalOptions.filter(o => o.text.toLowerCase().includes(q)) : originalOptions;
+          // Rebuild options
+          empSelect.innerHTML = '';
+          for (const opt of filtered) {
+            const el = document.createElement('option');
+            el.value = opt.value;
+            el.textContent = opt.text;
+            empSelect.appendChild(el);
+          }
+          // Restore selection if applicable
+          const exists = Array.from(empSelect.options).some(o => o.value === currentVal);
+          if (exists) empSelect.value = currentVal;
+        }
+        empSearch.addEventListener('input', filterEmployees);
       }
 
       periodTypeSelect.addEventListener('change', updateLabels);
-      newEmpToggle.addEventListener('change', syncToggle);
+      if (newEmpToggle) newEmpToggle.addEventListener('change', syncToggle);
       updateLabels();
       syncToggle();
     });
@@ -64,6 +91,9 @@
           </label>
 
           <div id="existing-employee-block" style="grid-column:1/-1;">
+            <label>Search employee by name or ID
+              <input id="employee-search" type="text" placeholder="Type to filter employees...">
+            </label>
             <label>Employee
               <select name="employee">
                 {% for e in employees %}

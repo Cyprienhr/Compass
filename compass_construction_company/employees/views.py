@@ -10,11 +10,13 @@ from django.http import JsonResponse
 @login_required
 def employee_list(request: HttpRequest) -> HttpResponse:
     if request.user.is_system_admin() or request.user.is_superuser:
-        qs = Employee.objects.select_related('site', 'category').all()
+        qs = Employee.objects.select_related('category', 'site').all()
     elif request.user.is_chief_engineer():
-        qs = Employee.objects.select_related('site', 'category').filter(site__chief_engineer=request.user)
+        # Chief engineers only see employees they created themselves
+        qs = Employee.objects.select_related('category', 'site').filter(created_by=request.user)
     else:
-        qs = Employee.objects.select_related('site', 'category').filter(site__site_engineers=request.user)
+        # Site engineers only see employees from sites they're assigned to
+        qs = Employee.objects.select_related('category', 'site').filter(site__site_engineers=request.user)
     return render(request, 'employees/employee_list.html', {'employees': qs})
 
 

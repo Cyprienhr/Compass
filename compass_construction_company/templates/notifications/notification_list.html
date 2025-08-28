@@ -18,6 +18,32 @@
           <li class="list-item">
             <strong>{{ n.title }}</strong>
             <div>{{ n.message }}</div>
+            {% if n.notification_type == 'PAYROLL_SUBMISSION' %}
+              <div style="margin: 8px 0; padding: 8px; background: #f8f9fa; border-radius: 4px;">
+                <small><strong>From:</strong> {{ n.sender.get_full_name|default:n.sender.username }}</small><br>
+                <small><strong>Site:</strong> {{ n.related_site }}</small><br>
+                <small><strong>Date:</strong> {{ n.related_date }}</small><br>
+                <small><strong>Received:</strong> {{ n.created_at }}</small>
+              </div>
+              <div style="margin: 8px 0;">
+                <a href="/payroll/?date={{ n.related_date }}&view=site" class="pill" style="background-color: #17a2b8; color: white; text-decoration: none; margin-right: 8px;">View Payroll List</a>
+              </div>
+              {% if not n.is_read %}
+                <form method="post" action="/payroll/reply-from-chief/" style="margin-top: 8px;">
+                  {% csrf_token %}
+                  <input type="hidden" name="notification_id" value="{{ n.id }}">
+                  <textarea name="reply_message" placeholder="Type your reply here..." style="width: 100%; margin-bottom: 8px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-height: 60px;"></textarea>
+                  <button type="submit" style="background-color: #007bff; color: white; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer;">Reply</button>
+                </form>
+              {% endif %}
+            {% elif n.notification_type == 'PAYROLL_REPLY' %}
+              <div style="margin: 8px 0; padding: 8px; background: #e7f3ff; border-radius: 4px;">
+                <small><strong>Reply from:</strong> {{ n.sender.get_full_name|default:n.sender.username }}</small><br>
+                <small><strong>Site:</strong> {{ n.related_site }}</small><br>
+                <small><strong>Date:</strong> {{ n.related_date }}</small><br>
+                <small><strong>Received:</strong> {{ n.created_at }}</small>
+              </div>
+            {% endif %}
             <small>{{ n.created_at }}</small>
             {% if not n.is_read %}
               <a class="pill" href="/notifications/{{ n.id }}/read/">Mark read</a>

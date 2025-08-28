@@ -5,6 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Payroll</title>
   <link rel="stylesheet" href="/static/css/dashboard.css">
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const dateInput = document.querySelector('input[name="date"]');
+      dateInput.addEventListener('change', function() {
+        // Automatically submit the form when date changes
+        this.form.submit();
+      });
+    });
+  </script>
 </head>
 <body>
   <div class="layout">
@@ -13,14 +22,39 @@
     </aside>
     <main class="content">
       <h1>Payroll Records</h1>
-
+      
       <form method="get" action="" style="margin-bottom:12px; display:flex; gap:8px; align-items:center;">
         <label style="margin:0;">Choose date
           <input type="date" name="date" value="{{ selected_date }}">
         </label>
-        <button type="submit">Load</button>
+        {% if view_type %}<input type="hidden" name="view" value="{{ view_type }}">{% endif %}
+        {% if selected_site_id %}<input type="hidden" name="site_id" value="{{ selected_site_id }}">{% endif %}
       </form>
+      
+      {% if user.is_chief_engineer %}
+      <div class="card" style="margin-bottom: 12px;">
+        <strong>View:</strong>
+        <a class="pill{% if view_type == 'own' %} muted{% endif %}" href="/payroll/?date={{ selected_date }}&view=own">Your payroll</a>
+        <a class="pill{% if view_type == 'site' %} muted{% endif %}" href="/payroll/?date={{ selected_date }}&view=site">Site Engineers payroll</a>
+        {% if view_type == 'site' and chief_sites %}
+          <div style="margin-top: 8px;">
+            <strong>Sites you manage:</strong>
+            {% for s in chief_sites %}
+              <a class="pill{% if selected_site_id == s.id|stringformat:'s' %} muted{% endif %}" href="/payroll/?date={{ selected_date }}&view=site&site_id={{ s.id }}">{{ s.name }}</a>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+      {% endif %}
 
+      {% if requires_site %}
+      <div class="card" style="margin-bottom:14px; background:#fff7ed; border:1px solid #fbbf24;">
+        <strong>Select a site</strong>
+        <div class="muted">Pick one of your sites above to view its payroll list for {{ selected_date }}.</div>
+      </div>
+      {% endif %}
+
+      {% if not requires_site %}
       <form method="post" action="/payroll/bulk-upsert-for-date/">
         {% csrf_token %}
         <input type="hidden" name="date" value="{{ selected_date }}">
@@ -72,13 +106,47 @@
                 {% empty %}
                 <tr><td colspan="10">No employees worked on this date</td></tr>
                 {% endfor %}
+                {% if date_rows %}
+                <tr style="background-color: #f8f9fa; font-weight: bold;">
+                  <td colspan="4"><strong>Total Amount</strong></td>
+                  <td><strong>{{ day_total }}</strong></td>
+                  <td colspan="2"></td>
+                  <td colspan="3">
+                    <strong>Site Engineer:</strong>
+                    {% if site_engineers %}
+                      {% for eng in site_engineers %}
+                        <div style="font-weight: normal; margin-top: 4px;">{{ eng.get_full_name|default:eng.username }}, {{ eng.phone|default:'N/A' }}</div>
+                      {% endfor %}
+                    {% else %}
+                      <span style="font-weight: normal;">None</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endif %}
               </tbody>
             </table>
           </div>
         </div>
 
-        <button type="submit">Save all</button>
+        <button type="submit">Save</button>
       </form>
+      {% endif %}
+
+      {% if date_rows %}
+      <form method="post" action="/payroll/submit-to-chief/" style="margin-top: 12px;">
+        {% csrf_token %}
+        <input type="hidden" name="date" value="{{ selected_date }}">
+        <button type="submit" style="background-color: #28a745; color: white;">Send to Chief Engineer</button>
+      </form>
+      {% endif %}
+      
+      <!-- {% if date_rows and not is_chief_review %}
+      <form method="post" action="/payroll/submit-to-chief/" style="margin-top: 12px;">
+        {% csrf_token %}
+        <input type="hidden" name="date" value="{{ selected_date }}">
+        <button type="submit" style="background-color: #28a745; color: white;">Send to Chief Engineer</button>
+      </form>
+      {% endif %} -->
 
     </main>
   </div>
